@@ -122,7 +122,9 @@ exports.deleteUser = async (req, res) => {
 
     // logout user
     res.cookie("token", null, {
-      expires: new Date(Date.now()),
+      expires: new Date(0),
+      sameSite: "none",
+      secure: true,
       httpOnly: true,
     });
 
