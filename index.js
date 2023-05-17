@@ -33,7 +33,10 @@ const connectDB = (url) => {
 
 // Middleware
 const corsOptions = {
-  origin: "http://localhost:3000",
+  origin: [
+    "http://localhost:3000",
+    "https://instagram-clone-tehseen01.vercel.app/",
+  ],
   credentials: true,
   allowedHeaders: [
     "Content-Type",
