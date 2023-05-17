@@ -20,6 +20,7 @@ exports.addComment = async (req, res) => {
     };
 
     post.comments.push(addedComment);
+    post.comments.reverse();
     await post.save();
 
     res.status(201).json({
@@ -32,29 +33,6 @@ exports.addComment = async (req, res) => {
       success: true,
       message: err.message,
     });
-  }
-};
-
-// UPDATE COMMENTS ON POST
-exports.updateComment = async (req, res) => {
-  try {
-    const { commentId, text } = req.body;
-
-    // Check if the comment exists
-    const comment = await Comment.findById(commentId);
-    if (!comment) {
-      return res.status(404).json({ error: "Comment not found" });
-    }
-
-    // Update the comment's text
-    comment.text = text;
-    await comment.save();
-
-    return res
-      .status(200)
-      .json({ message: "Comment updated successfully", comment });
-  } catch (err) {
-    return res.status(500).json({ error: "Failed to update comment" });
   }
 };
 
@@ -101,9 +79,27 @@ exports.deleteComment = async (req, res) => {
       });
     } else {
       // Checking if owner of the comment want to delete the comment
-      const commentIndex = post.comments.findIndex(
-        (comment) => comment.userId.toString() === userId
-      ); // Find index of comment in post.comments array
+      if (commentId) {
+        commentIndex = post.comments.findIndex(
+          (comment) => comment._id.toString() === commentId.toString()
+        ); // Find index of comment in post.comments array
+
+        if (commentIndex === -1) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Comment not found" });
+        }
+      } else {
+        commentIndex = post.comments.findIndex(
+          (comment) => comment.userId.toString() === userId
+        ); // Find index of comment in post.comments array
+
+        if (commentIndex === -1) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Comment not found" });
+        }
+      }
 
       post.comments.splice(commentIndex, 1);
 
