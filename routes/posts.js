@@ -6,23 +6,22 @@ const {
   deletePost,
   likePost,
   getSinglePost,
-  timelinePost,
-  getFollowingPosts,
   getAllPosts,
+  getUserFeedPosts,
 } = require("../controllers/post");
 const { isAuthenticated } = require("../middlewares/auth");
 
-// Get all posts
-router.get("/", isAuthenticated, getAllPosts);
+// Get all posts and crate post
+router
+  .route("/")
+  .get(isAuthenticated, getAllPosts)
+  .post(isAuthenticated, createPost);
 
-// Create a post
-router.post("/", isAuthenticated, createPost);
-
-// Update a post
-router.put("/:id", isAuthenticated, updatePost);
-
-// delete a post
-router.delete("/:id", isAuthenticated, deletePost);
+// Update a post and delete
+router
+  .route("/:id")
+  .put(isAuthenticated, updatePost)
+  .delete(isAuthenticated, deletePost);
 
 //Like and dislike a post
 router.put("/like/:id", isAuthenticated, likePost);
@@ -33,13 +32,10 @@ router
   .post(isAuthenticated, addComment)
   .delete(isAuthenticated, deleteComment);
 
-// Get following posts
-router.route("/followings").get(isAuthenticated, getFollowingPosts);
-
 // Get single posts
 router.route("/post/:id").get(isAuthenticated, getSinglePost);
 
-// get timeline posts
-router.get("/timeline/all", isAuthenticated, timelinePost);
+// get user feed posts
+router.get("/feed", isAuthenticated, getUserFeedPosts);
 
 module.exports = router;

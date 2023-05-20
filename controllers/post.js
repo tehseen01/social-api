@@ -118,23 +118,6 @@ exports.likePost = async (req, res) => {
   }
 };
 
-// GET FOLLOWING POST
-exports.getFollowingPosts = async (req, res) => {
-  const userId = req.user._id;
-  try {
-    const user = await User.findById(userId);
-
-    const posts = await Post.find({
-      $or: [{ userId }, { userId: { $in: user.followings } }],
-    }).populate("likes userId comments.userId");
-
-    res.status(200).json({ success: true, posts: posts.reverse() });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
 // GET A SINGLE POST
 exports.getSinglePost = async (req, res) => {
   try {
@@ -148,74 +131,90 @@ exports.getSinglePost = async (req, res) => {
 };
 
 // GET ALL POSTS
-const DEFAULT_PAGE_SIZE = 10; // number of posts per page
-
 exports.getAllPosts = async (req, res) => {
-  const { page = 1, pageSize = DEFAULT_PAGE_SIZE, random = true } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
 
   try {
-    // Get the total number of posts
     const totalPosts = await Post.countDocuments();
 
-    // Calculate the number of pages based on the page size and total posts
-    const totalPages = Math.ceil(totalPosts / pageSize);
+    const totalPages = Math.ceil(totalPosts / limit);
+    const skip = (page - 1) * limit;
 
-    // Calculate the number of posts to skip based on the requested page
-    const postsToSkip = (page - 1) * pageSize;
+    const posts = await Post.find()
+      .populate("userId", "name")
+      .skip(skip)
+      .limit(limit);
 
-    let posts;
-
-    if (random) {
-      // If "random" query param is truthy, select posts randomly
-      posts = await Post.aggregate([
-        { $sample: { size: pageSize } },
-        {
-          $lookup: {
-            from: "users",
-            localField: "userId",
-            foreignField: "_id",
-            as: "user",
-          },
-        },
-        {
-          $addFields: {
-            "userId.name": { $arrayElemAt: ["$user.name", 0] },
-          },
-        },
-        { $project: { user: 0 } },
-      ]);
-    } else {
-      // Otherwise, select posts in order
-      posts = await Post.find()
-        .populate("userId")
-        .sort({ createdAt: -1 })
-        .skip(postsToSkip)
-        .limit(pageSize);
-    }
+    const randomizedPosts = posts.sort(() => Math.random() - 0.5);
 
     res.status(200).json({
-      posts,
+      posts: randomizedPosts,
+      page,
+      totalPosts,
       totalPages,
-      currentPage: page,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// TIMELINE POST
-exports.timelinePost = async (req, res) => {
+// USER FEED POSTS
+exports.getUserFeedPosts = async (req, res) => {
+  const userId = req.user._id;
+  const limit = parseInt(req.query.limit) || 5;
+  const page = parseInt(req.query.page) || 1;
+
   try {
-    const { _id } = req.user;
-    const user = await User.findById(_id);
-    const userFollowings = user.followings;
+    const user = await User.findById(userId);
 
-    const posts = await Post.find({
-      userId: { $nin: [...userFollowings, user._id] },
-    }).populate("likes userId comments.userId");
+    let skip = (page - 1) * limit;
 
-    res.status(200).json(posts.reverse());
+    // Try to get posts from the user and their followings
+    const followingPosts = await Post.find({
+      $or: [{ userId }, { userId: { $in: user.followings } }],
+    })
+      .populate("likes userId comments.userId")
+      .sort({ _id: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // If there are any posts, return them as the response
+    if (followingPosts.length > 0) {
+      const postCount = await Post.countDocuments({
+        $or: [{ userId }, { userId: { $in: user.followings } }],
+      });
+
+      const totalPages = Math.ceil(postCount / limit);
+
+      res
+        .status(200)
+        .json({ success: true, posts: followingPosts, page: page, totalPages });
+    } else {
+      // Otherwise, get posts from other users
+      const userFollowings = user.followings;
+
+      const countPost = await Post.countDocuments({
+        userId: { $nin: [...userFollowings, user._id] },
+      });
+
+      const totalPage = Math.ceil(countPost / limit);
+
+      const timelinePosts = await Post.find({
+        userId: { $nin: [...userFollowings, user._id] },
+      })
+        .populate("likes userId comments.userId")
+        .skip(skip)
+        .limit(limit);
+
+      const randomizedPosts = timelinePosts.sort(() => Math.random() - 0.5);
+
+      res
+        .status(200)
+        .json({ posts: randomizedPosts, page: page, totalPages: totalPage });
+    }
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
