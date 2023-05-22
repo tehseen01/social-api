@@ -168,7 +168,10 @@ exports.getUserFeedPosts = async (req, res) => {
   try {
     const user = await User.findById(userId);
 
-    let skip = (page - 1) * limit;
+    const totalPosts = await Post.countDocuments();
+
+    const totalPages = Math.ceil(totalPosts / limit);
+    const skip = (page - 1) * limit;
 
     // Try to get posts from the user and their followings
     const followingPosts = await Post.find({
@@ -179,40 +182,23 @@ exports.getUserFeedPosts = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    // If there are any posts, return them as the response
-    if (followingPosts.length > 0) {
-      const postCount = await Post.countDocuments({
-        $or: [{ userId }, { userId: { $in: user.followings } }],
-      });
+    const userFollowings = user.followings;
 
-      const totalPages = Math.ceil(postCount / limit);
+    const timelinePosts = await Post.find({
+      userId: { $nin: [...userFollowings, user._id] },
+    })
+      .populate("likes userId comments.userId")
+      .sort({ _id: -1 })
+      .skip(skip)
+      .limit(limit);
 
-      res
-        .status(200)
-        .json({ success: true, posts: followingPosts, page: page, totalPages });
-    } else {
-      // Otherwise, get posts from other users
-      const userFollowings = user.followings;
+    const posts = [...followingPosts, ...timelinePosts];
 
-      const countPost = await Post.countDocuments({
-        userId: { $nin: [...userFollowings, user._id] },
-      });
-
-      const totalPage = Math.ceil(countPost / limit);
-
-      const timelinePosts = await Post.find({
-        userId: { $nin: [...userFollowings, user._id] },
-      })
-        .populate("likes userId comments.userId")
-        .skip(skip)
-        .limit(limit);
-
-      const randomizedPosts = timelinePosts.sort(() => Math.random() - 0.5);
-
-      res
-        .status(200)
-        .json({ posts: randomizedPosts, page: page, totalPages: totalPage });
-    }
+    res.status(200).json({
+      posts: posts,
+      page: page,
+      totalPages: totalPages,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
