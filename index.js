@@ -66,6 +66,13 @@ const io = new Server(server, {
       "http://localhost:3000",
       "https://instagram-clone-tehseen01.vercel.app",
     ],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Origin",
+      "X-Requested-With",
+      "Accept",
+    ],
     credentials: true,
   },
 });
