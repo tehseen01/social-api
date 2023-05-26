@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const { getNotifications } = require("../controllers/notification");
 const {
   updateProfile,
   deleteUser,
@@ -13,6 +14,9 @@ const { isAuthenticated } = require("../middlewares/auth");
 
 // My Profile
 router.get("/me", isAuthenticated, myProfile);
+
+// Notifications
+router.get("/me/notification", isAuthenticated, getNotifications);
 
 // update profile
 router.put("/update/profile", isAuthenticated, updateProfile);
