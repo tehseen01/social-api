@@ -1,3 +1,4 @@
+const Notification = require("../models/notification");
 const Post = require("../models/post");
 const User = require("../models/user");
 
@@ -22,6 +23,16 @@ exports.addComment = async (req, res) => {
     post.comments.push(addedComment);
     post.comments.reverse();
     await post.save();
+
+    const notification = new Notification({
+      recipient: post.userId,
+      sender: _id,
+      type: "comment",
+      post: post._id,
+      comment: comment,
+    });
+
+    await notification.save();
 
     res.status(201).json({
       success: true,

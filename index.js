@@ -1,53 +1,24 @@
 const dotenv = require("dotenv");
-const cors = require("cors");
 const express = require("express");
 const { default: helmet } = require("helmet");
-const mongoose = require("mongoose");
 const morgan = require("morgan");
 const app = express();
+const server = require("http").createServer(app);
+const { Server } = require("socket.io");
 const cookieParser = require("cookie-parser");
 const userRoute = require("./routes/users");
 const authRoute = require("./routes/auth");
 const postRoute = require("./routes/posts");
-const cloudinary = require("cloudinary").v2;
+const cloudinary = require("./config/cloudinaryConfig");
+const connectDB = require("./connection/connectDB");
+const corsMiddleware = require("./middlewares/corsMiddleware");
 
 dotenv.config();
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
 const PORT = process.env.PORT || 8080;
 
-mongoose.set("strictQuery", false);
-
-const connectDB = (url) => {
-  console.log("connected");
-  return mongoose.connect(url, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
-};
-
-// Middleware
-const corsOptions = {
-  origin: [
-    "http://localhost:3000",
-    "https://instagram-clone-tehseen01.vercel.app",
-  ],
-  credentials: true,
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "Origin",
-    "X-Requested-With",
-    "Accept",
-  ],
-};
-
-app.use(cors(corsOptions));
+// Middleware setup
+app.use(corsMiddleware);
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 app.use(express.urlencoded({ limit: "10mb", extended: false }));
@@ -59,10 +30,12 @@ app.use("/api/user", userRoute);
 app.use("/api/auth", authRoute);
 app.use("/api/posts", postRoute);
 
+cloudinary.config();
+
 const start = async () => {
   try {
     await connectDB(process.env.MONGO_URL);
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`server is listening ${PORT}`);
     });
   } catch (error) {
@@ -71,3 +44,44 @@ const start = async () => {
 };
 
 start();
+
+let onlineUsers = [];
+
+const addNewUser = (userId, socketId) => {
+  !onlineUsers.some((user) => user.userId === userId) &&
+    onlineUsers.push({ userId, socketId });
+};
+
+const removeUser = (socketId) => {
+  onlineUsers = onlineUsers.filter((user) => user.socketId !== socketId);
+};
+
+const getUser = (userId) => {
+  return onlineUsers.find((user) => user.userId === userId);
+};
+
+const io = new Server(server, {
+  cors: {
+    origin: [
+      "http://localhost:3000",
+      "https://instagram-clone-tehseen01.vercel.app",
+    ],
+    credentials: true,
+  },
+});
+
+io.on("connection", (socket) => {
+  socket.on("newUser", ({ userId }) => {
+    addNewUser(userId, socket.id);
+  });
+
+  socket.on("send", ({ recipient, notification }) => {
+    const receiver = getUser(recipient);
+    io.to(receiver.socketId).emit("get", notification);
+  });
+
+  socket.on("disconnect", () => {
+    removeUser(socket.id);
+    console.log("client disconnected");
+  });
+});

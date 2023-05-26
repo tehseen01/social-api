@@ -1,3 +1,4 @@
+const Notification = require("../models/notification");
 const Post = require("../models/post");
 const User = require("../models/user");
 const cloudinary = require("cloudinary").v2;
@@ -103,6 +104,16 @@ exports.likePost = async (req, res) => {
         { $push: { likes: userId } },
         { new: true }
       );
+
+      const notification = new Notification({
+        recipient: post.userId,
+        sender: userId,
+        type: "like",
+        post: postId,
+      });
+
+      await notification.save();
+
       res.status(200).json({ message: "Post liked" });
     } else {
       await Post.findByIdAndUpdate(

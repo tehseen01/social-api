@@ -1,5 +1,7 @@
 const User = require("../models/user");
 const Post = require("../models/post");
+const Notification = require("../models/notification");
+
 const { default: mongoose } = require("mongoose");
 const cloudinary = require("cloudinary").v2;
 
@@ -213,6 +215,14 @@ exports.followOrUnFollowUser = async (req, res) => {
     } else {
       await userToFollow.updateOne({ $push: { followers: loggedUserId } });
       await loggedUser.updateOne({ $push: { followings: userToFollowId } });
+
+      const notification = new Notification({
+        recipient: userToFollowId,
+        sender: loggedUserId,
+        type: "follow",
+      });
+
+      await notification.save();
 
       res.status(200).json({ message: "User followed successfully" });
     }
