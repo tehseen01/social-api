@@ -141,7 +141,9 @@ exports.myProfile = async (req, res) => {
   try {
     const { _id } = req.user;
 
-    const user = await User.findById(_id).populate("posts");
+    const user = await User.findById(_id).populate(
+      "posts followings followers"
+    );
 
     res.status(200).json({ success: true, user });
   } catch (err) {
@@ -158,9 +160,13 @@ exports.findUser = async (req, res) => {
     let user;
 
     if (mongoose.Types.ObjectId.isValid(idOrUsername)) {
-      user = await User.findById(idOrUsername).populate("posts");
+      user = await User.findById(idOrUsername).populate(
+        "posts followings followers"
+      );
     } else {
-      user = await User.findOne({ username: idOrUsername }).populate("posts");
+      user = await User.findOne({ username: idOrUsername }).populate(
+        "posts followings followers"
+      );
     }
 
     if (!user) {
