@@ -7,6 +7,8 @@ const cookieParser = require("cookie-parser");
 const userRoute = require("./routes/users");
 const authRoute = require("./routes/auth");
 const postRoute = require("./routes/posts");
+const messageRoutes = require("./routes/message");
+const chatRoutes = require("./routes/chat");
 const cloudinary = require("./config/cloudinaryConfig");
 const connectDB = require("./connection/connectDB");
 const corsMiddleware = require("./middlewares/corsMiddleware");
@@ -27,6 +29,8 @@ app.use(morgan("common"));
 app.use("/api/user", userRoute);
 app.use("/api/auth", authRoute);
 app.use("/api/posts", postRoute);
+app.use("/api/chat", chatRoutes);
+app.use("/api/message", messageRoutes);
 
 cloudinary.config();
 
