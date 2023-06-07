@@ -3,7 +3,9 @@ const { sendEmail } = require("../middlewares/sendEmail");
 const crypto = require("crypto");
 const cloudinary = require("cloudinary").v2;
 
-//USER REGISTRATION
+//@description     Registration of user
+//@route           POST /api/auth/register
+//@access          Protected
 exports.register = async (req, res) => {
   try {
     // get user information from request body
@@ -51,7 +53,9 @@ exports.register = async (req, res) => {
   }
 };
 
-// USER LOGIN
+//@description     Login user
+//@route           POST /api/auth/login
+//@access          Protected
 exports.login = async (req, res) => {
   try {
     // Get user information from request body
@@ -88,7 +92,9 @@ exports.login = async (req, res) => {
   }
 };
 
-// LOGOUT USER
+//@description     Logout user
+//@route           GET /api/auth/logout
+//@access          Protected
 exports.logout = async (req, res) => {
   try {
     res
@@ -105,7 +111,9 @@ exports.logout = async (req, res) => {
   }
 };
 
-// FORGOT PASSWORD USER
+//@description     Forgot password
+//@route           POST /api/auth/forgot/password
+//@access          Protected
 exports.forgotPassword = async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
@@ -166,7 +174,9 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-// Reset password
+//@description     Reset password
+//@route           PUT /api/auth/password/reset/:token
+//@access          Not Protected
 exports.resetPassword = async (req, res) => {
   const { token } = req.params;
   try {

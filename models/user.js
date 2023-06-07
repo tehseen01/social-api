@@ -31,7 +31,8 @@ const userSchema = new mongoose.Schema(
     },
     profilePicture: {
       type: String,
-      default: "",
+      default:
+        "https://res.cloudinary.com/dayo1mpv0/image/upload/v1683686792/default/profile.jpg",
     },
     posts: [
       {
