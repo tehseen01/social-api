@@ -77,6 +77,8 @@ exports.sendMessage = async (req, res) => {
       $set: { latestMessage: message },
     });
 
+    await pusher.trigger("chat", "new-message", message);
+
     res.status(200).json({ success: true, message });
   } catch (err) {
     console.log(err);
